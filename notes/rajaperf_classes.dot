@@ -1,0 +1,32 @@
+digraph RAJAPerfClasses {
+  rankdir=LR;
+  fontname="Helvetica";
+  labelloc="t"; fontsize=18;
+  label="RAJAPerf — Core Classes & Kernel Class Hierarchy";
+  node [fontname="Helvetica", shape=record, style=filled, fillcolor="#e8f5e9"];
+  edge [fontname="Helvetica", fontsize=10];
+
+  Executor [fillcolor="#a5d6a7", label="{Executor|+ setupSuite()\l+ runSuite()\l+ outputRunData()\l- runKernel()\l- writeCSVReport()\l}"];
+  RunParams [label="{RunParams|+ getKernelInput()\l+ getVariantInput()\l+ getTargetSize()\l+ size / size_meaning\l+ npasses / repfact\l}"];
+  Suite [label="{RAJAPerfSuite (free fns + enums)|KernelID\lVariantID\lGroupID / FeatureID\l+ getKernelObject(id): KernelBase*\l}"];
+
+  KernelBase [fillcolor="#ffe0b2", label="{KernelBase  «abstract»|# metadata (size, reps, bytes, flops)\l# timers, checksums\l+ startTimer()/stopTimer()\l+ execute(vid, tune)\l|+ setUp(vid,tune)=0\l+ updateChecksum(vid,tune)=0\l+ tearDown(vid,tune)=0\l+ run<Backend>Variant(vid)\l}"];
+
+  DAXPY [fillcolor="#bbdefb", label="{DAXPY : KernelBase|+ setSize()\l+ setUp/updateChecksum/tearDown\l+ runSeqVariant()\l+ runOpenMPVariant()\l+ runCudaVariant() ...\l}"];
+  ENERGY [fillcolor="#bbdefb", label="ENERGY : KernelBase"];
+  VOL3D  [fillcolor="#bbdefb", label="VOL3D : KernelBase"];
+  OTHERS [fillcolor="#bbdefb", label="... ~70 more kernels\n(basic, lcals, polybench,\nstream, apps, algorithm, comm)"];
+
+  DataUtils [label="{DataUtils / OutputUtils|allocAndInitData()\ldeallocData()\lchecksum helpers\lCSV writers\l}"];
+
+  Executor -> RunParams   [label="reads config"];
+  Executor -> Suite       [label="build kernel list"];
+  Suite    -> KernelBase  [label="factory returns", style=dashed];
+  Executor -> KernelBase  [label="runKernel(): setUp→run→checksum→tearDown"];
+  KernelBase -> DataUtils [label="uses"];
+
+  KernelBase -> DAXPY  [dir=back, arrowtail=empty, label="derives"];
+  KernelBase -> ENERGY [dir=back, arrowtail=empty];
+  KernelBase -> VOL3D  [dir=back, arrowtail=empty];
+  KernelBase -> OTHERS [dir=back, arrowtail=empty];
+}

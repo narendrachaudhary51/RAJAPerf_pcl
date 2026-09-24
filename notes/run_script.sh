@@ -1,0 +1,6 @@
+./bench_environ.sh ./bin/raja-perf.exe \
+	-k DIFFUSION3DPA EDGE3D ENERGY FEMSWEEP INTSC_HEXRECT MASS3DEA MASS3DPA_ATOMIC MASSVEC3DPA NODAL_ACCUMULATION_3D VOL3D \
+	-v RAJA_OpenMP Base_OpenMP \
+	--size 100000000
+python add_efficiency.py
+

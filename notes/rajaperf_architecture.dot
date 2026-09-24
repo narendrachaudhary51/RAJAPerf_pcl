@@ -1,0 +1,92 @@
+digraph RAJAPerf {
+  rankdir=TB;
+  fontname="Helvetica";
+  labelloc="t";
+  fontsize=20;
+  label="RAJA Performance Suite (RAJAPerf) — Architecture Overview";
+  node [fontname="Helvetica", style=filled, shape=box];
+  edge [fontname="Helvetica", fontsize=10];
+
+  /* ---------- Entry point ---------- */
+  subgraph cluster_entry {
+    label="Entry Point";
+    style=filled; color="#eef2f7";
+    driver [label="RAJAPerfSuiteDriver.cpp\n(main)\nMPI/Kokkos init", fillcolor="#ffe0b2"];
+  }
+
+  /* ---------- Core / common ---------- */
+  subgraph cluster_core {
+    label="src/common  (framework core)";
+    style=filled; color="#e8f5e9";
+    executor  [label="Executor\nsetupSuite() -> runSuite()\n-> outputRunData()", fillcolor="#a5d6a7"];
+    runparams [label="RunParams\nparses CLI args\n(--kernels, --variants,\n--size, --tunings ...)", fillcolor="#c8e6c9"];
+    suite     [label="RAJAPerfSuite\nKernelID / VariantID /\nGroupID / FeatureID enums\n+ factory getKernelObject()", fillcolor="#c8e6c9"];
+    kernelbase[label="KernelBase (abstract)\nsetUp / run* / updateChecksum /\ntearDown, timers, checksums", fillcolor="#a5d6a7"];
+    datautils [label="DataUtils / OutputUtils\n(alloc, checksums, CSV)", fillcolor="#c8e6c9"];
+    backendutils[label="Cuda/Hip/Sycl/OpenMPTarget\nDataUtils.hpp (backend helpers)", fillcolor="#c8e6c9"];
+  }
+
+  /* ---------- Kernel groups ---------- */
+  subgraph cluster_kernels {
+    label="Kernel Groups  (each kernel derives from KernelBase)";
+    style=filled; color="#e3f2fd";
+    basic   [label="basic", fillcolor="#bbdefb"];
+    lcals   [label="lcals", fillcolor="#bbdefb"];
+    polybench[label="polybench", fillcolor="#bbdefb"];
+    stream  [label="stream", fillcolor="#bbdefb"];
+    apps    [label="apps", fillcolor="#bbdefb"];
+    algo    [label="algorithm", fillcolor="#bbdefb"];
+    comm    [label="comm (MPI)", fillcolor="#bbdefb"];
+    kokkos  [label="*-kokkos groups", fillcolor="#bbdefb"];
+  }
+
+  /* ---------- Per-kernel variant files ---------- */
+  subgraph cluster_variants {
+    label="Per-Kernel Variant Implementations  (e.g. DAXPY.*)";
+    style=filled; color="#fce4ec";
+    v_common [label="KERNEL.cpp / KERNEL.hpp\n(shared setup + dispatch)", fillcolor="#f8bbd0"];
+    v_seq  [label="-Seq.cpp\nBase/Lambda/RAJA Seq", fillcolor="#f8bbd0"];
+    v_omp  [label="-OMP.cpp\nOpenMP", fillcolor="#f8bbd0"];
+    v_ompt [label="-OMPTarget.cpp", fillcolor="#f8bbd0"];
+    v_cuda [label="-Cuda.cpp", fillcolor="#f8bbd0"];
+    v_hip  [label="-Hip.cpp", fillcolor="#f8bbd0"];
+    v_sycl [label="-Sycl.cpp", fillcolor="#f8bbd0"];
+  }
+
+  /* ---------- External deps ---------- */
+  subgraph cluster_tpl {
+    label="Third-Party (tpl/, blt/)";
+    style=filled; color="#f3e5f5";
+    raja [label="RAJA", fillcolor="#e1bee7"];
+    blt  [label="BLT (CMake build)", fillcolor="#e1bee7"];
+    camp [label="camp / Kokkos / Caliper", fillcolor="#e1bee7"];
+  }
+
+  /* ---------- Output ---------- */
+  output [label="Output reports\n*-timing.csv, *-checksum.csv,\n*-fom.csv, Caliper", shape=note, fillcolor="#fff9c4"];
+
+  /* ---------- Edges ---------- */
+  driver -> executor;
+  executor -> runparams [label="parse args"];
+  executor -> suite     [label="build kernel list"];
+  suite -> kernelbase   [label="factory creates"];
+  executor -> kernelbase[label="runKernel()"];
+  kernelbase -> datautils;
+  kernelbase -> backendutils;
+
+  suite -> basic; suite -> lcals; suite -> polybench; suite -> stream;
+  suite -> apps; suite -> algo; suite -> comm; suite -> kokkos;
+
+  basic -> kernelbase [style=dashed, label="derives", constraint=false];
+  apps  -> kernelbase [style=dashed, constraint=false];
+
+  basic -> v_common [label="each kernel"];
+  v_common -> v_seq; v_common -> v_omp; v_common -> v_ompt;
+  v_common -> v_cuda; v_common -> v_hip; v_common -> v_sycl;
+
+  kernelbase -> raja [style=dotted, label="uses"];
+  v_seq -> raja [style=dotted]; v_omp -> raja [style=dotted];
+  executor -> output [label="writeCSVReport()"];
+  blt -> driver [style=dotted, label="builds", constraint=false];
+  camp -> raja [style=dotted, constraint=false];
+}
